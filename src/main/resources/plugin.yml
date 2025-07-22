@@ -3,6 +3,7 @@ version: '${version}'
 main: dev.cakestudio.cakenear.CakeNear
 api-version: '1.16'
 authors: [CakeStudio]
+website: https://dsc.gg/cakestudio
 commands:
   near: {}
 permissions:
