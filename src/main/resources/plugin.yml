@@ -1,0 +1,10 @@
+name: CakeNear
+version: '${version}'
+main: dev.cakestudio.cakenear.CakeNear
+api-version: '1.16'
+authors: [CakeStudio]
+commands:
+  near: {}
+permissions:
+  cakenear.near:
+    default: op
