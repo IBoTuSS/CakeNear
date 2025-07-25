@@ -1,19 +1,18 @@
 package dev.cakestudio.cakenear.command;
 
-import dev.cakestudio.cakenear.config.ConfigManager;
-import dev.cakestudio.cakenear.near.LuckPermsManager;
+import dev.cakestudio.cakenear.near.CooldownManager;
 import dev.cakestudio.cakenear.near.NearManager;
+import dev.cakestudio.cakenear.near.PlayerGroupProvider;
+import dev.cakestudio.cakenear.service.SettingsManager;
 import dev.cakestudio.cakenear.util.HexColor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.luckperms.api.LuckPerms;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -21,66 +20,77 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NearCommand implements CommandExecutor {
 
-    private final LuckPerms luckPerms;
+    private final CooldownManager cooldownManager;
+    private final SettingsManager settings;
+    private final PlayerGroupProvider groupProvider;
 
     @Override
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command command, @NonNull String label, @NonNull String[] args) {
-        FileConfiguration config = ConfigManager.getConfig();
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(HexColor.deserialize(config.getString("messages.only-player")));
+            sender.sendMessage(settings.getMessage("messages.only-player"));
             return true;
         }
 
         if (!player.hasPermission("cakenear.near")) {
-            player.sendMessage(HexColor.deserialize(config.getString("messages.no-permission")));
+            player.sendMessage(settings.getMessage("messages.no-permission"));
             return true;
         }
 
-        LuckPermsManager luckPermsManager = new LuckPermsManager(luckPerms);
 
-        int maxDistance = luckPermsManager.getPlayerNearDistance(player);
+        if (cooldownManager.isOnCooldown(player)) {
+            long remaining = cooldownManager.getRemainingTime(player);
+            player.sendMessage(settings.getFormattedMessage("messages.cooldown-message", "{time}", String.valueOf(remaining)));
+            return true;
+        }
 
-        List<Player> nearbyPlayers = player
-                .getWorld()
-                .getPlayers()
-                .stream()
-                .filter(p -> !p.equals(player) && p.getLocation().distance(player.getLocation()) <= maxDistance)
+        cooldownManager.setCooldown(player);
+
+        String primaryGroup = groupProvider.getPrimaryGroup(player);
+        int maxDistance = settings.getNearDistance(primaryGroup);
+
+        List<Player> nearbyPlayers = player.getWorld().getPlayers().stream()
+                .filter(p -> !p.equals(player) && p.getLocation().distanceSquared(player.getLocation()) <= (long) maxDistance * maxDistance)
                 .toList();
 
         if (nearbyPlayers.isEmpty()) {
-            player.sendMessage(HexColor.deserialize(config.getString("messages.no-players-near")));
+            player.sendMessage(settings.getMessage("messages.no-players-near"));
             return true;
         }
 
-        player.sendMessage(HexColor.deserialize(config.getString("messages.player-near")));
+        player.sendMessage(settings.getMessage("messages.player-near"));
 
         for (Player nearbyPlayer : nearbyPlayers) {
-            int distance = (int) player.getLocation().distance(nearbyPlayer.getLocation());
-            String directionArrow = NearManager.getDirection(player, nearbyPlayer);
-            String format = config.getString("messages.player-near-format");
-
-            Component playerComponent = Component.text(nearbyPlayer.getName())
-                    .hoverEvent(HoverEvent.showText(
-                            HexColor.deserialize(config.getString("messages.inventory-button-hover-text"))
-                    ))
-                    .clickEvent(ClickEvent.runCommand(
-                            config.getString("messages.inventory-button-click-command")
-                                    .replace("{player}", nearbyPlayer.getName())
-                    ));
-
-            String processedFormat = format
-                    .replace("{distance}", String.valueOf(distance))
-                    .replace("{arrows}", directionArrow);
-
-            Component finalMessage = HexColor.deserialize(processedFormat)
-                    .replaceText(builder -> builder
-                            .matchLiteral("{player}")
-                            .replacement(playerComponent)
-                    );
-
-            player.sendMessage(finalMessage);
+            player.sendMessage(formatPlayerMessage(player, nearbyPlayer));
         }
 
         return true;
+    }
+
+    private @NonNull Component formatPlayerMessage(@NonNull Player source, @NonNull Player target) {
+        int distance = (int) source.getLocation().distance(target.getLocation());
+        String directionArrow = NearManager.getDirection(source, target, settings);
+
+        String requiredPermission = settings.getClickPermission();
+        boolean hasClickPermission = requiredPermission.isEmpty() || source.hasPermission(requiredPermission);
+
+        Component playerComponent;
+
+        if (hasClickPermission) {
+            playerComponent = Component.text(target.getName())
+                    .hoverEvent(HoverEvent.showText(settings.getHoverText()))
+                    .clickEvent(ClickEvent.runCommand(settings.getClickCommand(target)));
+        } else {
+            playerComponent = Component.text(target.getName())
+                    .hoverEvent(HoverEvent.showText(settings.getMessage("messages.inventory-button-hover-text-no-permission")));
+        }
+
+        String format = settings.getRawString("messages.player-near-format");
+
+        String replacedFormat = format
+                .replace("{distance}", String.valueOf(distance))
+                .replace("{arrows}", directionArrow);
+
+        return HexColor.deserialize(replacedFormat)
+                .replaceText(builder -> builder.matchLiteral("{player}").replacement(playerComponent));
     }
 }
