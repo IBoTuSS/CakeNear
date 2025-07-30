@@ -10,10 +10,12 @@ import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.List;
 
@@ -47,9 +49,14 @@ public class NearCommand implements CommandExecutor {
 
         String primaryGroup = groupProvider.getPrimaryGroup(player);
         int maxDistance = settings.getNearDistance(primaryGroup);
+        boolean showInvisible = settings.isShowInvisiblePlayers();
+        boolean showSpectators = settings.isShowSpectators();
 
         List<Player> nearbyPlayers = player.getWorld().getPlayers().stream()
-                .filter(p -> !p.equals(player) && p.getLocation().distanceSquared(player.getLocation()) <= (long) maxDistance * maxDistance)
+                .filter(p -> !p.equals(player))
+                .filter(p -> showInvisible || !p.hasPotionEffect(PotionEffectType.INVISIBILITY))
+                .filter(p -> showSpectators || p.getGameMode() != GameMode.SPECTATOR)
+                .filter(p -> p.getLocation().distanceSquared(player.getLocation()) <= (long) maxDistance * maxDistance)
                 .toList();
 
         if (nearbyPlayers.isEmpty()) {

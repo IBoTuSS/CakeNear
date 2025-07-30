@@ -20,6 +20,14 @@ public class SettingsManager {
         return config.getInt("command-cooldown.groups." + group, config.getInt("command-cooldown.default"));
     }
 
+    public boolean isShowInvisiblePlayers() {
+        return config.getBoolean("options.show-invisible-players");
+    }
+
+    public boolean isShowSpectators() {
+        return config.getBoolean("options.show-spectators");
+    }
+
     public String getArrow(String direction) {
         return config.getString("arrows." + direction);
     }
