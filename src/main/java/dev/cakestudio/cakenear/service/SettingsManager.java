@@ -7,6 +7,8 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 
+import java.util.List;
+
 @RequiredArgsConstructor
 public class SettingsManager {
 
@@ -26,6 +28,10 @@ public class SettingsManager {
 
     public boolean isShowSpectators() {
         return config.getBoolean("options.show-spectators");
+    }
+
+    public List<String> getDisabledWorlds() {
+        return config.getStringList("options.disabled-worlds");
     }
 
     public String getArrow(String direction) {

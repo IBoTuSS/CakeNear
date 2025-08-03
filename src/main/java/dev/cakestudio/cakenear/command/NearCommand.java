@@ -33,6 +33,12 @@ public class NearCommand implements CommandExecutor {
             return true;
         }
 
+        List<String> disabledWorlds = settings.getDisabledWorlds();
+        if (disabledWorlds.contains(player.getWorld().getName())) {
+            player.sendMessage(settings.getMessage("messages.command-disabled-in-world"));
+            return true;
+        }
+
         if (!player.hasPermission("cakenear.near")) {
             player.sendMessage(settings.getMessage("messages.no-permission"));
             return true;
