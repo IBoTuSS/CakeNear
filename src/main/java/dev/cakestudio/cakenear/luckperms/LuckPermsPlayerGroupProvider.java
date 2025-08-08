@@ -1,4 +1,4 @@
-package dev.cakestudio.cakenear.near;
+package dev.cakestudio.cakenear.luckperms;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

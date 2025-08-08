@@ -1,5 +1,6 @@
-package dev.cakestudio.cakenear.near;
+package dev.cakestudio.cakenear.manager;
 
+import dev.cakestudio.cakenear.luckperms.PlayerGroupProvider;
 import dev.cakestudio.cakenear.service.SettingsManager;
 import lombok.NonNull;
 import org.bukkit.entity.Player;

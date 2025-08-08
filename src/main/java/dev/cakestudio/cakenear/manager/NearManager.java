@@ -1,4 +1,4 @@
-package dev.cakestudio.cakenear.near;
+package dev.cakestudio.cakenear.manager;
 
 import dev.cakestudio.cakenear.service.SettingsManager;
 import lombok.NonNull;

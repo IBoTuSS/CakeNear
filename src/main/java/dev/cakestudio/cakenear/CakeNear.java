@@ -1,11 +1,14 @@
 package dev.cakestudio.cakenear;
 
 import dev.cakestudio.cakenear.command.NearCommand;
-import dev.cakestudio.cakenear.near.CooldownManager;
-import dev.cakestudio.cakenear.near.LuckPermsPlayerGroupProvider;
-import dev.cakestudio.cakenear.near.PlayerGroupProvider;
+import dev.cakestudio.cakenear.listener.PlayerDamageListener;
+import dev.cakestudio.cakenear.manager.AutoNearManager;
+import dev.cakestudio.cakenear.manager.CooldownManager;
+import dev.cakestudio.cakenear.luckperms.LuckPermsPlayerGroupProvider;
+import dev.cakestudio.cakenear.luckperms.PlayerGroupProvider;
 import dev.cakestudio.cakenear.service.SettingsManager;
 import dev.cakestudio.cakenear.util.HexColor;
+import lombok.Getter;
 import net.luckperms.api.LuckPerms;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -14,6 +17,9 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class CakeNear extends JavaPlugin {
+
+    @Getter
+    private AutoNearManager autoNearManager;
 
     private void msg(String msg) {
         String prefix = "&#C102FACakeNear &7| ";
@@ -33,16 +39,24 @@ public final class CakeNear extends JavaPlugin {
         }
         LuckPerms luckPerms = provider.getProvider();
 
+
         SettingsManager settingsManager = new SettingsManager(config);
         PlayerGroupProvider groupProvider = new LuckPermsPlayerGroupProvider(luckPerms);
         CooldownManager cooldownManager = new CooldownManager(settingsManager, groupProvider);
 
-        PluginCommand nearCommand = getCommand("near");
+        autoNearManager = new AutoNearManager(this, settingsManager);
+
+        PluginCommand nearCommand = getServer().getPluginCommand("near");
         if (nearCommand != null) {
-            nearCommand.setExecutor(new NearCommand(cooldownManager, settingsManager, groupProvider));
+            NearCommand commandExecutor = new NearCommand(cooldownManager, settingsManager, groupProvider, autoNearManager);
+
+            nearCommand.setExecutor(commandExecutor);
+            nearCommand.setTabCompleter(commandExecutor);
         } else {
             getLogger().severe("Команда 'near' не найдена в plugin.yml!");
         }
+
+        getServer().getPluginManager().registerEvents(new PlayerDamageListener(autoNearManager, settingsManager), this);
 
         Bukkit.getConsoleSender().sendMessage("");
         msg("&fDeveloper: &#C102FACakeStudio");
@@ -53,7 +67,7 @@ public final class CakeNear extends JavaPlugin {
     @Override
     public void onDisable() {
         Bukkit.getConsoleSender().sendMessage("");
-        msg("&fDisable plugin.");
+        msg("&fВыключение плагина");
         Bukkit.getConsoleSender().sendMessage("");
     }
 }

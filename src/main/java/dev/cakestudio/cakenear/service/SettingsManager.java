@@ -38,6 +38,14 @@ public class SettingsManager {
         return config.getString("arrows." + direction);
     }
 
+    public int getAutoNearInterval() {
+        return config.getInt("near-auto.interval");
+    }
+
+    public boolean isAutoNearDisableOnDamageEnabled() {
+        return config.getBoolean("near-auto.disable-on-damage");
+    }
+
     public Component getMessage(String key) {
         return HexColor.deserialize(getRawString(key));
     }

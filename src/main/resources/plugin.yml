@@ -9,5 +9,7 @@ commands:
 permissions:
   cakenear.near:
     default: op
+  cakenear.auto:
+    default: op
   cakenear.bypass:
     default: op

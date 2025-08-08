@@ -1,8 +1,9 @@
 package dev.cakestudio.cakenear.command;
 
-import dev.cakestudio.cakenear.near.CooldownManager;
-import dev.cakestudio.cakenear.near.NearManager;
-import dev.cakestudio.cakenear.near.PlayerGroupProvider;
+import dev.cakestudio.cakenear.manager.AutoNearManager;
+import dev.cakestudio.cakenear.manager.CooldownManager;
+import dev.cakestudio.cakenear.manager.NearManager;
+import dev.cakestudio.cakenear.luckperms.PlayerGroupProvider;
 import dev.cakestudio.cakenear.service.SettingsManager;
 import dev.cakestudio.cakenear.util.HexColor;
 import lombok.NonNull;
@@ -14,22 +15,36 @@ import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.StringUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @RequiredArgsConstructor
-public class NearCommand implements CommandExecutor {
+public class NearCommand implements CommandExecutor, TabCompleter {
 
     private final CooldownManager cooldownManager;
     private final SettingsManager settings;
     private final PlayerGroupProvider groupProvider;
+    private final AutoNearManager autoNearManager;
 
     @Override
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command command, @NonNull String label, @NonNull String[] args) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(settings.getMessage("messages.only-player"));
+            return true;
+        }
+
+        if (args.length > 0 && args[0].equalsIgnoreCase("auto")) {
+            if (!player.hasPermission("cakenear.auto")) {
+                player.sendMessage(settings.getMessage("messages.no-permission-autonear"));
+                return true;
+            }
+            autoNearManager.toggleAutoNear(player);
             return true;
         }
 
@@ -43,7 +58,6 @@ public class NearCommand implements CommandExecutor {
             player.sendMessage(settings.getMessage("messages.no-permission"));
             return true;
         }
-
 
         if (cooldownManager.isOnCooldown(player)) {
             long remaining = cooldownManager.getRemainingTime(player);
@@ -105,5 +119,17 @@ public class NearCommand implements CommandExecutor {
 
         return HexColor.deserialize(replacedFormat)
                 .replaceText(builder -> builder.matchLiteral("{player}").replacement(playerComponent));
+    }
+
+    @Override
+    public List<String> onTabComplete(@NonNull CommandSender sender, @NonNull Command command, @NonNull String alias, @NonNull String @NonNull [] args) {
+        if (args.length == 1) {
+            if (sender.hasPermission("cakenear.auto")) {
+                List<String> completions = new ArrayList<>();
+                completions.add("auto");
+                return StringUtil.copyPartialMatches(args[0], completions, new ArrayList<>());
+            }
+        }
+        return Collections.emptyList();
     }
 }
